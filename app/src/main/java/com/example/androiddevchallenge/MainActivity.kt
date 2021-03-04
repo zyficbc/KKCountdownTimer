@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
 // Start building your app here!
 @Composable
 fun MyApp() {
-        MyCountdownTimer().Timer()
+    MyCountdownTimer().Timer()
 }
 
 @Preview("Light Theme", widthDp = 360, heightDp = 640)
