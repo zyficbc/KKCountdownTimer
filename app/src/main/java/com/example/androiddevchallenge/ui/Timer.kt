@@ -19,18 +19,21 @@ import android.os.CountDownTimer
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.androiddevchallenge.ui.theme.MyTheme
 
 class MyCountdownTimer {
-    lateinit var showMinute: String
     lateinit var timerImpl: CountDownTimer
 
     @Composable
@@ -45,6 +48,8 @@ class MyCountdownTimer {
         var ready by rememberSaveable { mutableStateOf(true) }
         var resetEnable by rememberSaveable { mutableStateOf(false) }
         val openDialog = remember { mutableStateOf("") }
+        var resultMin: String
+        var resultSec: String
 
         fun reset() {
             resetEnable = false
@@ -67,8 +72,9 @@ class MyCountdownTimer {
                 BigDigit(text = ":", false)
                 BigDigit(text = showSec)
             }
+            Spacer(modifier = Modifier.height(30.dp))
             //setting zone
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically,horizontalArrangement=Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
                 fun secValueChange(value: String) {
                     var text = if (value.length <= 2) value else value.substring(0, 2)
                     if (text.toInt() > 59) {
@@ -89,15 +95,28 @@ class MyCountdownTimer {
                     minValue = text
                 }
                 InputField(enable = ready, value = minValue, onValueChange = { minValueChange(it) })
-                Text(text = "min", modifier = Modifier.width(30.dp))
+                Text(
+                    text = "min", modifier = Modifier
+                        .width(30.dp), color = Color.LightGray
+                )
+                Spacer(modifier = Modifier.width(10.dp))
                 InputField(enable = ready, value = secValue, onValueChange = { secValueChange(it) })
-                Text(text = "sec", modifier = Modifier.width(30.dp))
+                Text(
+                    text = "sec", modifier = Modifier
+                        .width(30.dp), color = Color.LightGray
+                )
             }
+            Spacer(modifier = Modifier.height(60.dp))
+
             //buttons
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(
                     onClick = {
-                        resetEnable = true;
+                        if (minValue.isEmpty() && secValue.isEmpty()) {
+                            openDialog.value = TIP_ERROR
+                            return@Button
+                        }
+                        resetEnable = true
                         if (ready) { //clicked start
                             var min: Int = (if (minValue.isEmpty()) 0 else minValue.toInt())
                             var sec = if (secValue.isEmpty()) 0 else secValue.toInt()
@@ -122,8 +141,12 @@ class MyCountdownTimer {
 
                                 override fun onFinish() {
                                     Log.d("zyf", "onFinish")
+                                    val tempMin =
+                                        if (!minValue.isEmpty()) "$minValue minutes " else ""
+                                    val tempSec =
+                                        if (!secValue.isEmpty()) "$secValue seconds " else ""
+                                    openDialog.value = "$TIP_DONE \n $tempMin$tempSec passed."
                                     reset()
-                                    openDialog.value = TIP_DONE
                                 }
                             }.start()
                         } else {    //clicked pause
@@ -134,7 +157,7 @@ class MyCountdownTimer {
                     }) {
                     Text(text = if (ready) "START" else "PAUSE")
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(20.dp))
                 Button(
                     enabled = resetEnable,
                     onClick = {
@@ -176,11 +199,12 @@ fun BigDigit(text: String, check: Boolean = true) {
 fun InputField(enable: Boolean = true, value: String, onValueChange: (String) -> Unit) {
     TextField(
         enabled = enable,
-//        value = if (value.length<=2)value else value.substring(0,2),
         value = value,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         singleLine = true,
         modifier = Modifier
-            .width(130.dp),
+            .width(100.dp).padding(10.dp)
+            .background(Color.White),
         onValueChange = onValueChange
     )
 }
