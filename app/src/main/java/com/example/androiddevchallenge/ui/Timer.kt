@@ -19,7 +19,6 @@ import android.os.CountDownTimer
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -27,7 +26,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -48,8 +46,6 @@ class MyCountdownTimer {
         var ready by rememberSaveable { mutableStateOf(true) }
         var resetEnable by rememberSaveable { mutableStateOf(false) }
         val openDialog = remember { mutableStateOf("") }
-        var resultMin: String
-        var resultSec: String
 
         fun reset() {
             resetEnable = false
@@ -74,10 +70,14 @@ class MyCountdownTimer {
             }
             Spacer(modifier = Modifier.height(30.dp))
             //setting zone
-            Row(verticalAlignment = Alignment.CenterVertically,horizontalArrangement=Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 fun secValueChange(value: String) {
                     var text = if (value.length <= 2) value else value.substring(0, 2)
-                    if (text.toInt() > 59) {
+                    if (text.isNotEmpty() && text.toInt() > 59) {
                         openDialog.value = TIP_ERROR
                         text = ""
                     }
@@ -87,7 +87,7 @@ class MyCountdownTimer {
 
                 fun minValueChange(value: String) {
                     var text = if (value.length <= 2) value else value.substring(0, 2)
-                    if (text.toInt() > 59) {
+                    if (text.isNotEmpty() && text.toInt() > 59) {
                         openDialog.value = TIP_ERROR
                         text = ""
                     }
@@ -112,10 +112,12 @@ class MyCountdownTimer {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(
                     onClick = {
+
                         if (minValue.isEmpty() && secValue.isEmpty()) {
                             openDialog.value = TIP_ERROR
                             return@Button
                         }
+
                         resetEnable = true
                         if (ready) { //clicked start
                             var min: Int = (if (minValue.isEmpty()) 0 else minValue.toInt())
@@ -137,20 +139,19 @@ class MyCountdownTimer {
                                     }
                                     showSec = "$sec"
                                     showMin = "$min"
+                                    Log.d("zyf", "onTick: $showMin, $showSec")
                                 }
 
                                 override fun onFinish() {
                                     Log.d("zyf", "onFinish")
-                                    val tempMin =
-                                        if (!minValue.isEmpty()) "$minValue minutes " else ""
-                                    val tempSec =
-                                        if (!secValue.isEmpty()) "$secValue seconds " else ""
-                                    openDialog.value = "$TIP_DONE \n $tempMin$tempSec passed."
+                                    openDialog.value = TIP_DONE
                                     reset()
                                 }
                             }.start()
                         } else {    //clicked pause
                             timerImpl.cancel()
+                            minValue = if (showMin.toInt() == 0) "" else showMin
+                            secValue = showSec
                         }
                         ready = !ready
 
@@ -203,7 +204,8 @@ fun InputField(enable: Boolean = true, value: String, onValueChange: (String) ->
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         singleLine = true,
         modifier = Modifier
-            .width(100.dp).padding(10.dp)
+            .width(100.dp)
+            .padding(10.dp)
             .background(Color.White),
         onValueChange = onValueChange
     )
