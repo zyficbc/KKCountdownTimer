@@ -17,6 +17,12 @@ package com.example.androiddevchallenge.ui
 
 import android.os.CountDownTimer
 import android.util.Log
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -48,157 +54,182 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.androiddevchallenge.ui.theme.MyTheme
 
-class MyCountdownTimer {
-    lateinit var timerImpl: CountDownTimer
+lateinit var timerImpl: CountDownTimer
 
-    @Composable
-    fun Timer() {
-        val TIP_ERROR = "Please input legal number(0~59)."
-        val TIP_DONE = "Time up!!!"
+@Composable
+fun Timer() {
+    val tipError = "Please input legal number(0~59)."
+    val tipDone = "Time up!!!"
 
-        var minValue by rememberSaveable { mutableStateOf("") }
-        var secValue by rememberSaveable { mutableStateOf("") }
-        var showMin by rememberSaveable { mutableStateOf("") }
-        var showSec by rememberSaveable { mutableStateOf("") }
-        var ready by rememberSaveable { mutableStateOf(true) }
-        var resetEnable by rememberSaveable { mutableStateOf(false) }
-        val openDialog = remember { mutableStateOf("") }
+    var minValue by rememberSaveable { mutableStateOf("") }
+    var secValue by rememberSaveable { mutableStateOf("") }
+    var showMin by rememberSaveable { mutableStateOf("") }
+    var showSec by rememberSaveable { mutableStateOf("") }
+    var ready by rememberSaveable { mutableStateOf(true) }
+    var resetEnable by rememberSaveable { mutableStateOf(false) }
+    val openDialog = remember { mutableStateOf("") }
 
-        fun reset() {
-            resetEnable = false
-            ready = true
-            timerImpl.cancel()
-            showMin = ""
-            showSec = ""
-            secValue = ""
-            minValue = ""
-        }
-        Column(
-            modifier = Modifier
-                .background(Color.DarkGray)
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // display zone
-            Row() {
-                BigDigit(text = showMin)
+    fun reset() {
+        resetEnable = false
+        ready = true
+        timerImpl.cancel()
+        showMin = ""
+        showSec = ""
+        secValue = ""
+        minValue = ""
+    }
+    Column(
+        modifier = Modifier
+            .background(Color.DarkGray)
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // display zone
+        Row() {
+            BigDigit(text = showMin)
+            if (ready) {
                 BigDigit(text = ":", false)
-                BigDigit(text = showSec)
+            } else {
+                val infiniteTransition = rememberInfiniteTransition()
+                val alpha by infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0f,
+                    animationSpec = infiniteRepeatable(
+                        animation = keyframes {
+                            durationMillis = 500
+                            0.9f at 250
+                        },
+                        repeatMode = RepeatMode.Reverse
+                    )
+                )
+                BigDigit(text = ":", false, alpha = alpha)
             }
-            Spacer(modifier = Modifier.height(30.dp))
-            // setting zone
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
+            BigDigit(text = showSec)
+        }
+        Spacer(modifier = Modifier.height(30.dp))
+        // setting zone
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            fun secValueChange(value: String) {
+                var text = if (value.length <= 2) value else value.substring(0, 2)
+                if (text.isNotEmpty() && text.toInt() > 59) {
+                    openDialog.value = tipError
+                    text = ""
+                }
+                showSec = text
+                secValue = text
+            }
+
+            fun minValueChange(value: String) {
+                var text = if (value.length <= 2) value else value.substring(0, 2)
+                if (text.isNotEmpty() && text.toInt() > 59) {
+                    openDialog.value = tipError
+                    text = ""
+                }
+                showMin = text
+                minValue = text
+            }
+            InputField(enable = ready, value = minValue, onValueChange = { minValueChange(it) })
+            Text(
+                text = "min",
+                modifier = Modifier
+                    .width(30.dp),
+                color = Color.LightGray
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            InputField(enable = ready, value = secValue, onValueChange = { secValueChange(it) })
+            Text(
+                text = "sec",
+                modifier = Modifier
+                    .width(30.dp),
+                color = Color.LightGray
+            )
+        }
+        Spacer(modifier = Modifier.height(60.dp))
+
+        // buttons
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(
+                onClick = {
+
+                    if (minValue.isEmpty() && secValue.isEmpty()) {
+                        openDialog.value = tipError
+                        return@Button
+                    }
+
+                    resetEnable = true
+                    if (ready) { // clicked start
+                        var min: Int = (if (minValue.isEmpty()) 0 else minValue.toInt())
+                        var sec = if (secValue.isEmpty()) 0 else secValue.toInt()
+                        val time = (min * 60 + sec) * 1000
+
+                        timerImpl = object : CountDownTimer(time.toLong(), 1000) {
+                            var temp = 0
+                            override fun onTick(millisUntilFinished: Long) {
+                                if (temp == 0) {
+                                    temp = 1
+                                    return
+                                }
+                                Log.d("zyf", "onTick: $millisUntilFinished")
+                                if (sec == 0) {
+                                    sec = 59
+                                    min--
+                                } else {
+                                    sec--
+                                }
+                                showSec = "$sec"
+                                showMin = "$min"
+                                Log.d("zyf", "onTick: $showMin, $showSec")
+                            }
+
+                            override fun onFinish() {
+                                Log.d("zyf", "onFinish")
+                                openDialog.value = tipDone
+                                reset()
+                            }
+                        }.start()
+                    } else { // clicked pause
+                        timerImpl.cancel()
+                        minValue = if (showMin.toIntOrNull() == 0) "" else showMin
+                        secValue = showSec
+                    }
+                    ready = !ready
+//                    runningAnimation = !runningAnimation
+                }
             ) {
-                fun secValueChange(value: String) {
-                    var text = if (value.length <= 2) value else value.substring(0, 2)
-                    if (text.isNotEmpty() && text.toInt() > 59) {
-                        openDialog.value = TIP_ERROR
-                        text = ""
-                    }
-                    showSec = text
-                    secValue = text
-                }
-
-                fun minValueChange(value: String) {
-                    var text = if (value.length <= 2) value else value.substring(0, 2)
-                    if (text.isNotEmpty() && text.toInt() > 59) {
-                        openDialog.value = TIP_ERROR
-                        text = ""
-                    }
-                    showMin = text
-                    minValue = text
-                }
-                InputField(enable = ready, value = minValue, onValueChange = { minValueChange(it) })
-                Text(
-                    text = "min",
-                    modifier = Modifier
-                        .width(30.dp),
-                    color = Color.LightGray
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                InputField(enable = ready, value = secValue, onValueChange = { secValueChange(it) })
-                Text(
-                    text = "sec",
-                    modifier = Modifier
-                        .width(30.dp),
-                    color = Color.LightGray
-                )
+                Text(text = if (ready) "START" else "PAUSE")
             }
-            Spacer(modifier = Modifier.height(60.dp))
-
-            // buttons
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(
-                    onClick = {
-
-                        if (minValue.isEmpty() && secValue.isEmpty()) {
-                            openDialog.value = TIP_ERROR
-                            return@Button
-                        }
-
-                        resetEnable = true
-                        if (ready) { // clicked start
-                            var min: Int = (if (minValue.isEmpty()) 0 else minValue.toInt())
-                            var sec = if (secValue.isEmpty()) 0 else secValue.toInt()
-                            val time = (min * 60 + sec) * 1000
-                            timerImpl = object : CountDownTimer(time.toLong(), 1000) {
-                                var temp = 0
-                                override fun onTick(millisUntilFinished: Long) {
-                                    if (temp == 0) {
-                                        temp = 1
-                                        return
-                                    }
-                                    Log.d("zyf", "onTick: $millisUntilFinished")
-                                    if (sec == 0) {
-                                        sec = 59
-                                        min--
-                                    } else {
-                                        sec--
-                                    }
-                                    showSec = "$sec"
-                                    showMin = "$min"
-                                    Log.d("zyf", "onTick: $showMin, $showSec")
-                                }
-
-                                override fun onFinish() {
-                                    Log.d("zyf", "onFinish")
-                                    openDialog.value = TIP_DONE
-                                    reset()
-                                }
-                            }.start()
-                        } else { // clicked pause
-                            timerImpl.cancel()
-                            minValue = if (showMin.toInt() == 0) "" else showMin
-                            secValue = showSec
-                        }
-                        ready = !ready
-                    }
-                ) {
-                    Text(text = if (ready) "START" else "PAUSE")
+            Spacer(modifier = Modifier.width(20.dp))
+            Button(
+                enabled = resetEnable,
+                onClick = {
+//                    reset()
+                    resetEnable = false
+                    ready = true
+                    timerImpl.cancel()
+                    showMin = ""
+                    showSec = ""
+                    secValue = ""
+                    minValue = ""
                 }
-                Spacer(modifier = Modifier.width(20.dp))
-                Button(
-                    enabled = resetEnable,
-                    onClick = {
-                        reset()
-                    }
-                ) {
-                    Text(text = "RESET")
-                }
+            ) {
+                Text(text = "RESET")
             }
         }
-        // warning dialog
-        if (!openDialog.value.isEmpty()) {
-            MyDialog(text = openDialog.value) { openDialog.value = "" }
-        }
+    }
+    // warning dialog
+    if (!openDialog.value.isEmpty()) {
+        MyDialog(text = openDialog.value) { openDialog.value = "" }
     }
 }
 
 @Composable
-fun BigDigit(text: String, check: Boolean = true) {
+fun BigDigit(text: String, check: Boolean = true, alpha: Float = 1f) {
+
+    Log.d("zyf", "BigDigit: $text : $alpha")
     var real: String = text
     if (check) {
         if (text.isEmpty()) {
@@ -207,11 +238,19 @@ fun BigDigit(text: String, check: Boolean = true) {
             real = "0$text"
         }
     }
-    Text(
-        text = if (check) real else text,
-        style = MaterialTheme.typography.h1,
-        color = Color.White
-    )
+    if (check) {
+        Text(
+            text = if (check) real else text,
+            style = MaterialTheme.typography.h1,
+            color = Color.White
+        )
+    } else {
+        Text(
+            text = if (check) real else text,
+            style = MaterialTheme.typography.h1,
+            color = Color.White.copy(alpha = alpha)
+        )
+    }
 }
 
 @Composable
@@ -251,10 +290,11 @@ fun MyDialog(text: String, onClick: () -> Unit) {
     )
 }
 
+@ExperimentalAnimationApi
 @Preview("Light Theme", widthDp = 360, heightDp = 640)
 @Composable
 fun LightPreview() {
     MyTheme {
-        MyCountdownTimer().Timer()
+        Timer()
     }
 }
