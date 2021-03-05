@@ -63,10 +63,10 @@ fun Timer() {
 
     var minValue by rememberSaveable { mutableStateOf("") }
     var secValue by rememberSaveable { mutableStateOf("") }
-    var showMin by rememberSaveable { mutableStateOf("") }
-    var showSec by rememberSaveable { mutableStateOf("") }
-    var ready by rememberSaveable { mutableStateOf(true) }
-    var resetEnable by rememberSaveable { mutableStateOf(false) }
+    var showMin by remember { mutableStateOf("") }
+    var showSec by remember { mutableStateOf("") }
+    var ready by remember { mutableStateOf(true) }
+    var resetEnable by remember { mutableStateOf(false) }
     val openDialog = remember { mutableStateOf("") }
 
     fun reset() {

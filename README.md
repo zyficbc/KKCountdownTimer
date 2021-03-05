@@ -7,11 +7,14 @@
 
 ## :scroll: Description
 <!--- Describe your app in one or two sentences -->
+This is a countdown timer App for #AndroidDevChallenge Week 2.
 
 
 ## :bulb: Motivation and Context
 <!--- Optionally point readers to interesting parts of your submission. -->
 <!--- What are you especially proud of? -->
+Use MutableState to change digits while countdown going.
+Realized a loop fade-in/fade-out animation with the colon.
 
 
 ## :camera_flash: Screenshots
