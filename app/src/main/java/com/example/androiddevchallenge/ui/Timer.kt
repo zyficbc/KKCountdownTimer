@@ -115,7 +115,7 @@ fun Timer() {
         ) {
             fun secValueChange(value: String) {
                 var text = if (value.length <= 2) value else value.substring(0, 2)
-                if (text.isNotEmpty() && text.toInt() > 59) {
+                if (text.toIntOrNull() == null || text.isNotEmpty() && text.toInt() > 59) {
                     openDialog.value = tipError
                     text = ""
                 }
@@ -125,7 +125,7 @@ fun Timer() {
 
             fun minValueChange(value: String) {
                 var text = if (value.length <= 2) value else value.substring(0, 2)
-                if (text.isNotEmpty() && text.toInt() > 59) {
+                if (text.toIntOrNull() == null || text.isNotEmpty() && text.toInt() > 59) {
                     openDialog.value = tipError
                     text = ""
                 }
